@@ -109,7 +109,6 @@ public class SignatureView extends View {
                     mCountDownTimer.cancel();
                     mCountDownTimer=null;
                 }
-                if(SystemClock.elapsedRealtime()-startTime>100){
                     Log.e("TAG", "onTouchEventup");
                     mCountDownTimer = new CountDownTimer(1000, 1000) {
                         @Override
@@ -118,6 +117,7 @@ public class SignatureView extends View {
                         }
                         @Override
                         public void onFinish() {
+                            Log.e("TAG", "finish");
                             cachebBitmap = Bitmap.createBitmap(getWidth(), getHeight(), Bitmap.Config.ARGB_8888);
                             cacheCanvas = new Canvas(cachebBitmap);
                             cacheCanvas.drawColor(mBackColor);
@@ -137,7 +137,6 @@ public class SignatureView extends View {
                         }
                     };
                     mCountDownTimer.start();
-                }
                 break;
         }
         // 更新绘制
