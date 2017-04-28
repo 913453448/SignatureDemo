@@ -8,7 +8,9 @@ import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.PorterDuff;
 import android.os.CountDownTimer;
+import android.os.SystemClock;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 
@@ -24,7 +26,7 @@ import java.io.OutputStream;
 
 public class SignatureView extends View {
     private Context mContext;
-    private int targetWidth = 200, targetHeight = 200;
+    private int targetWidth = 100, targetHeight = 100;
     private ISignatureCallBack signatureCallBack;
 
     public void setSignatureCallBack(ISignatureCallBack signatureCallBack) {
@@ -66,7 +68,7 @@ public class SignatureView extends View {
     /**
      * 背景色（指最终签名结果文件的背景颜色，默认为透明色）
      */
-    private int mBackColor = Color.TRANSPARENT;
+    private int mBackColor = Color.WHITE;
 
     private CountDownTimer mCountDownTimer;
 
@@ -105,32 +107,37 @@ public class SignatureView extends View {
             case MotionEvent.ACTION_UP:
                 if (mCountDownTimer != null) {
                     mCountDownTimer.cancel();
+                    mCountDownTimer=null;
                 }
-                mCountDownTimer = new CountDownTimer(1000, 1000) {
-                    @Override
-                    public void onTick(long millisUntilFinished) {
+                if(SystemClock.elapsedRealtime()-startTime>100){
+                    Log.e("TAG", "onTouchEventup");
+                    mCountDownTimer = new CountDownTimer(1000, 1000) {
+                        @Override
+                        public void onTick(long millisUntilFinished) {
 
-                    }
-
-                    @Override
-                    public void onFinish() {
-                        cachebBitmap = Bitmap.createBitmap(getWidth(), getHeight(), Bitmap.Config.ARGB_8888);
-                        cacheCanvas = new Canvas(cachebBitmap);
-                        cacheCanvas.drawColor(mBackColor);
-                        cacheCanvas.drawPath(mPath, mGesturePaint);
-                        if (signatureCallBack != null) {
-                            Bitmap b = clearBlank(cachebBitmap, 0);
-                            if (b == null) {
-                                clear();
-                                return;
-                            }
-                            signatureCallBack.onSignCompeleted(SignatureView.this, clearBlank(cachebBitmap, 0));
                         }
-                        mPath.reset();
-                        invalidate();
-                    }
-                };
-                mCountDownTimer.start();
+                        @Override
+                        public void onFinish() {
+                            cachebBitmap = Bitmap.createBitmap(getWidth(), getHeight(), Bitmap.Config.ARGB_8888);
+                            cacheCanvas = new Canvas(cachebBitmap);
+                            cacheCanvas.drawColor(mBackColor);
+                            cacheCanvas.drawPath(mPath, mGesturePaint);
+                            if (signatureCallBack != null) {
+                                Log.e("TAG", "finish");
+                                Bitmap b = clearBlank(cachebBitmap, 0);
+                                Log.e("TAG", "finish b-->"+b);
+                                if (b == null) {
+                                    clear();
+                                    return;
+                                }
+                                signatureCallBack.onSignCompeleted(SignatureView.this, clearBlank(cachebBitmap, 0));
+                            }
+                            mPath.reset();
+                            invalidate();
+                        }
+                    };
+                    mCountDownTimer.start();
+                }
                 break;
         }
         // 更新绘制
@@ -143,7 +150,9 @@ public class SignatureView extends View {
         super.onDraw(canvas);
         canvas.drawPath(mPath, mGesturePaint);
     }
+    private long startTime;
     private void touchDown(MotionEvent event) {
+        startTime= SystemClock.elapsedRealtime();
         float x = event.getX();
         float y = event.getY();
         mX = x;
@@ -152,6 +161,7 @@ public class SignatureView extends View {
         mPath.moveTo(x, y);
         if (mCountDownTimer != null) {
             mCountDownTimer.cancel();
+            mCountDownTimer=null;
         }
     }
 
@@ -159,6 +169,7 @@ public class SignatureView extends View {
     private void touchMove(MotionEvent event) {
         if (mCountDownTimer != null) {
             mCountDownTimer.cancel();
+            mCountDownTimer=null;
         }
         final float x = event.getX();
         final float y = event.getY();
@@ -321,9 +332,11 @@ public class SignatureView extends View {
             top = top - blank > 0 ? top - blank : 0;
             right = right + blank > WIDTH - 1 ? WIDTH - 1 : right + blank;
             bottom = bottom + blank > HEIGHT - 1 ? HEIGHT - 1 : bottom + blank;
-            int result = Math.max((right - left), (bottom - top));
-            return Bitmap.createScaledBitmap(Bitmap.createBitmap(bp, left, top, result, result), targetWidth, targetHeight, false);
+            Bitmap b=Bitmap.createBitmap(bp, left, top, (right - left), (bottom - top));
+            int resultW= b.getWidth()*targetHeight/b.getHeight();
+            return Bitmap.createScaledBitmap(b, resultW, targetHeight, false);
         } catch (Exception e) {
+            e.printStackTrace();
         }
         return null;
     }
